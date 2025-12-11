@@ -20,7 +20,7 @@ async function exchangeToken() {
         console.log('--- REFRESH TOKEN ---');
         console.log(tokens.refresh_token);
         console.log('---------------------');
-    } catch (e) {
+    } catch (e: any) {
         console.error("Token Exchange Failed:", e.message);
     }
 }

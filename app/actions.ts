@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 import { generateWaiverPDF } from '@/lib/pdf-generator';
 import { uploadToDrive } from '@/lib/drive';
+import { sendBackupEmail } from '@/lib/email';
 
 export async function saveAgreement(content: string, name: string = "Standard Waiver") {
     await prisma.agreementTemplate.create({
@@ -72,11 +73,7 @@ export async function submitSignedAgreement(
             return signed;
         });
 
-        import { sendBackupEmail } from '@/lib/email';
-
-        // ... (previous imports)
-
-        // ... inside submitSignedAgreement
+        // Backups handled below transaction
 
         // --- Automatic Backup Logic ---
         try {

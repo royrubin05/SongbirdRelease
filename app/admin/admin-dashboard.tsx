@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { saveAgreement, createSigningSession } from '../actions';
-import { CheckCircle, XCircle, Copy, FileText, Plus, Download, Search, LayoutList, CheckSquare, Clock } from 'lucide-react';
+import { CheckCircle2, AlertCircle, XCircle, Copy, FileText, Plus, Download, Search, LayoutList, CheckSquare, Clock } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,11 +21,11 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 9;
 
-    const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
     const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
-        setNotification({ message, type });
-        setTimeout(() => setNotification(null), 3000);
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
     };
 
     const handleSave = async () => {
@@ -161,6 +161,7 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                                 <Plus className="w-4 h-4" /> New Waiver
                             </button>
                         </div>
+                    </div>
                 </header>
 
                 {/* Stats Row */}
