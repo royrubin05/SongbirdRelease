@@ -149,12 +149,7 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                         </div>
                         <div className="flex items-center gap-3">
 
-                            <button
-                                onClick={() => setIsModalOpen(true)}
-                                className="btn-primary flex items-center gap-2 shadow-lg shadow-[#2C1810]/20 transform transition hover:scale-105 active:scale-95 text-sm py-2 px-4"
-                            >
-                                <Plus className="w-4 h-4" /> New Waiver
-                            </button>
+
                         </div>
                     </div>
                 </header>
@@ -248,8 +243,8 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                                     {/* Metadata */}
                                     <div className="text-[11px] text-[#8B6E4E] space-y-0.5 mb-2 leading-tight">
                                         {session.designatedEmail && <p className="truncate">{session.designatedEmail}</p>}
-                                        {!session.isSigned && <p className="text-[#9C8C74]">{new Date(session.createdAt).toLocaleDateString()}</p>}
-                                        {session.isSigned && session.signedAgreement && <p className="text-green-700/70">Signed: {new Date(session.signedAgreement.signedAt).toLocaleDateString()}</p>}
+                                        {!session.isSigned && <p className="text-[#9C8C74]">{new Date(session.createdAt).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' })}</p>}
+                                        {session.isSigned && session.signedAgreement && <p className="text-green-700/70">Signed: {new Date(session.signedAgreement.signedAt).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' })}</p>}
                                     </div>
 
                                     {/* Action Area */}
@@ -429,9 +424,9 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                     </p>
                     <button
                         onClick={() => setIsTemplateModalOpen(true)}
-                        className="mt-4 text-[#8B6E4E]/60 hover:text-[#2C1810] text-xs flex items-center justify-center gap-1 mx-auto transition"
+                        className="mt-4 text-[#8B6E4E] hover:text-[#2C1810] text-sm font-bold border-b border-[#8B6E4E]/40 hover:border-[#2C1810] flex items-center justify-center gap-1 mx-auto transition pb-0.5"
                     >
-                        <FileText className="w-3 h-3" /> Edit Template
+                        <FileText className="w-4 h-4" /> Waiver Document
                     </button>
                 </footer>
             </div>

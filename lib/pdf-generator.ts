@@ -41,7 +41,7 @@ export async function generateWaiverPDF(session: any): Promise<Buffer> {
     addField("Signer:", sa.customerName);
 
     const signedDate = new Date(sa.signedAt);
-    const dateStr = signedDate.toLocaleDateString() + ' ' + signedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = signedDate.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' }) + ' ' + signedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Los_Angeles' });
     addField("Date:", dateStr, 90);
 
     y += 10;
