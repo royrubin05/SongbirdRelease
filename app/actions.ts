@@ -126,3 +126,21 @@ export async function submitSignedAgreement(
         return { success: false, error: (e as any).message || "Failed to submit" };
     }
 }
+
+export async function deleteSigningSession(sessionId: string) {
+    try {
+        await prisma.$transaction([
+            prisma.signedAgreement.deleteMany({
+                where: { sessionId }
+            }),
+            prisma.signingSession.delete({
+                where: { id: sessionId }
+            })
+        ]);
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e) {
+        console.error("Delete failed:", e);
+        return { success: false, error: "Failed to delete" };
+    }
+}

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { saveAgreement, createSigningSession } from '../actions';
-import { CheckCircle2, AlertCircle, XCircle, Copy, FileText, Plus, Download, Search, LayoutList, CheckSquare, Clock } from 'lucide-react';
+import { saveAgreement, createSigningSession, deleteSigningSession } from '../actions';
+import { CheckCircle2, AlertCircle, XCircle, Copy, FileText, Plus, Download, Search, LayoutList, CheckSquare, Clock, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -261,6 +261,19 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                                         ) : (
                                             renderDownloadButton(session)
                                         )}
+                                        <button
+                                            onClick={async () => {
+                                                if (confirm('Are you sure you want to delete this waiver? This cannot be undone.')) {
+                                                    const res = await deleteSigningSession(session.id);
+                                                    if (res.success) showNotification('Waiver deleted');
+                                                    else showNotification('Delete failed', 'error');
+                                                }
+                                            }}
+                                            className="text-gray-400 hover:text-red-600 p-1.5 transition-colors rounded-md hover:bg-red-50 ml-1"
+                                            title="Delete Waiver"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </motion.div>
                             ))}
