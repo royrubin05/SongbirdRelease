@@ -40,7 +40,7 @@ export default function DebugEnvPage() {
             </div>
 
             <p style={{ marginTop: '20px', color: '#666' }}>
-                If any are MISSING, go to Vercel Settings -> Environment Variables and add them.
+                If any are MISSING, go to Vercel Settings &rarr; Environment Variables and add them.
                 <br />
                 Then <strong>Redeploy</strong>.
             </p>
