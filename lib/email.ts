@@ -1,12 +1,37 @@
 
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 
-const GMAIL_USER = process.env.GMAIL_USER;
-// This needs to be an App Password, not the login password
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-
-// The recipient for backups
+const GMAIL_USER = 'roy.rubin@gmail.com';
 const BACKUP_RECIPIENT = 'roy.rubin@gmail.com';
+
+function makeBody(to: string, from: string, subject: string, message: string, attachmentCheck: { filename: string, content: Buffer }) {
+    const boundary = "foo_bar_baz";
+
+    // Manual MIME Construction
+    const str = [
+        "MIME-Version: 1.0",
+        "to: " + to,
+        "from: " + from,
+        "subject: " + subject,
+        "Content-Type: multipart/mixed; boundary=" + boundary,
+        "",
+        "--" + boundary,
+        "Content-Type: text/plain; charset=UTF-8",
+        "",
+        message,
+        "",
+        "--" + boundary,
+        "Content-Type: application/pdf; name=\"" + attachmentCheck.filename + "\"",
+        "Content-Disposition: attachment; filename=\"" + attachmentCheck.filename + "\"",
+        "Content-Transfer-Encoding: base64",
+        "",
+        attachmentCheck.content.toString('base64'),
+        "",
+        "--" + boundary + "--"
+    ].join("\r\n");
+
+    return Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
 export async function sendBackupEmail(
     pdfBuffer: Buffer,
@@ -14,39 +39,42 @@ export async function sendBackupEmail(
     signerName: string,
     signerEmail: string
 ) {
-    if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
-        console.warn("Skipping Email Backup: Missing GMAIL_USER or GMAIL_APP_PASSWORD");
+    const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+    const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
+        console.warn("Skipping Email Backup: Missing OAuth Credentials");
         return { success: false, error: 'Missing credentials' };
     }
 
     try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: GMAIL_USER,
-                pass: GMAIL_APP_PASSWORD,
+        const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET);
+        oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+        const raw = makeBody(
+            BACKUP_RECIPIENT,
+            `"Songbird Waiver Bot" <${GMAIL_USER}>`,
+            `[Waiver Signed] ${signerName}`,
+            `A new waiver has been signed by ${signerName} (${signerEmail}).\n\nThe PDF is attached to this email.`,
+            { filename: filename, content: pdfBuffer }
+        );
+
+        const res = await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+                raw: raw,
             },
         });
 
-        const info = await transporter.sendMail({
-            from: `"Songbird Waiver Bot" <${GMAIL_USER}>`,
-            to: BACKUP_RECIPIENT,
-            subject: `[Waiver Signed] ${signerName}`,
-            text: `A new waiver has been signed by ${signerName} (${signerEmail}).\n\nThe PDF is attached to this email.`,
-            attachments: [
-                {
-                    filename: filename,
-                    content: pdfBuffer,
-                    contentType: 'application/pdf'
-                }
-            ]
-        });
-
-        console.log("Email Backup Sent:", info.messageId);
-        return { success: true, messageId: info.messageId };
+        console.log("Email Backup Sent via Gmail API:", res.data.id);
+        return { success: true, messageId: res.data.id };
 
     } catch (error) {
         console.error("Email Backup Failed:", error);
         return { success: false, error: error };
     }
 }
+

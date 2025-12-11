@@ -147,18 +147,24 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                             <h1 className="text-2xl font-serif text-[#2C1810] tracking-tight">Waiver Dashboard</h1>
                             <p className="text-[#8B5E3C] text-xs uppercase tracking-widest font-medium">Songbird Terrace</p>
                         </div>
-                    </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="btn-primary flex items-center gap-2 shadow-lg shadow-[#2C1810]/20 transform transition hover:scale-105 active:scale-95 text-sm py-2 px-4"
-                    >
-                        <Plus className="w-4 h-4" /> New Waiver
-                    </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setIsTemplateModalOpen(true)}
+                                className="bg-white border border-[#E6DCC3] hover:border-[#8B5E3C] text-[#8B6E4E] hover:text-[#2C1810] transition px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
+                            >
+                                <FileText className="w-4 h-4" /> Edit Template
+                            </button>
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="btn-primary flex items-center gap-2 shadow-lg shadow-[#2C1810]/20 transform transition hover:scale-105 active:scale-95 text-sm py-2 px-4"
+                            >
+                                <Plus className="w-4 h-4" /> New Waiver
+                            </button>
+                        </div>
                 </header>
 
-                {/* Agreement Editor (Collapsible or smaller? keeping as is for now but usually less important) */}
-                {/* Stats & Actions Row */}
-                <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Stats Row */}
+                <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-[#E6DCC3] flex items-center justify-between">
                         <div>
                             <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B6E4E]">Total Waivers</p>
@@ -166,17 +172,6 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                         </div>
                         <LayoutList className="w-8 h-8 text-[#E6DCC3]" />
                     </div>
-
-                    <button
-                        onClick={() => setIsTemplateModalOpen(true)}
-                        className="bg-white p-4 rounded-xl shadow-sm border border-[#E6DCC3] flex items-center justify-between hover:border-[#8B5E3C] transition-colors group text-left"
-                    >
-                        <div>
-                            <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B6E4E]">Agreement Template</p>
-                            <p className="text-sm font-bold text-[#2C1810] group-hover:text-[#8B5E3C] transition-colors">Edit Content</p>
-                        </div>
-                        <FileText className="w-8 h-8 text-[#E6DCC3] group-hover:text-[#8B5E3C] transition-colors" />
-                    </button>
 
                     <button
                         onClick={() => setIsModalOpen(true)}
@@ -412,19 +407,31 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
 
                 {/* Notification Toast */}
                 <AnimatePresence>
-                    {notification && (
+                    {toast && (
                         <motion.div
-                            initial={{ opacity: 0, y: 50, x: '-50%' }}
-                            animate={{ opacity: 1, y: 0, x: '-50%' }}
-                            exit={{ opacity: 0, y: 20, x: '-50%' }}
-                            className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 z-50 text-sm font-bold ${notification.type === 'success' ? 'bg-[#2C1810] text-[#D4B483]' : 'bg-red-600 text-white'
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 50 }}
+                            className={`fixed bottom-8 right-8 px-6 py-3 rounded-xl shadow-2xl border flex items-center gap-3 backdrop-blur-md z-50 ${toast.type === 'success'
+                                ? 'bg-[#FDFBF7]/90 border-[#8B6E4E] text-[#2C1810]'
+                                : 'bg-red-50/90 border-red-200 text-red-800'
                                 }`}
                         >
-                            {notification.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                            {notification.message}
+                            {toast.type === 'success' ? (
+                                <CheckCircle2 className="w-5 h-5 text-[#8B6E4E]" />
+                            ) : (
+                                <AlertCircle className="w-5 h-5" />
+                            )}
+                            <span className="font-bold text-sm tracking-wide">{toast.message}</span>
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                <footer className="mt-12 mb-6 text-center">
+                    <p className="text-[10px] uppercase tracking-widest text-[#9C8C74]/60 font-medium">
+                        Songbird Terrace Release App • v1.0.0
+                    </p>
+                </footer>
             </div>
         </div>
     );
