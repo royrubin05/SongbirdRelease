@@ -19,7 +19,8 @@ export async function createSigningSession(data: { description?: string, name: s
         data: {
             description: data.description,
             designatedName: data.name,
-            designatedEmail: data.email
+            designatedEmail: data.email,
+            agreementTemplateId: 1 // Default to the first template
         }
     });
     revalidatePath('/admin');
