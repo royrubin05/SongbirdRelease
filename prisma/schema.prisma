@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model AgreementTemplate {
+  id        Int      @id @default(autoincrement())
+  name      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+  
+  sessions  SigningSession[]
+}
+
+model SigningSession {
+  id              String   @id @default(uuid())
+  status          String   @default("CREATED") // CREATED, SIGNED
+  
+  agreementTemplateId Int
+  agreementTemplate   AgreementTemplate @relation(fields: [agreementTemplateId], references: [id])
+  
+  description     String?
+  designatedName  String?
+  designatedEmail String?
+  isSigned        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  signedAgreement SignedAgreement?
+}
+
+model SignedAgreement {
+  id              Int      @id @default(autoincrement())
+  session         SigningSession @relation(fields: [sessionId], references: [id])
+  sessionId       String   @unique
+  
+  customerName    String
+  customerAddress String
+  customerEmail   String?
+  customerPhone   String?
+  
+  signatureData   String   // Base64
+  pdfPath         String?  // Path relative to storage root
+  agreementSnapshot String // The text they agreed to
+  
+  signedAt        DateTime @default(now())
+}
