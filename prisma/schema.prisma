@@ -51,6 +51,7 @@ model SignedAgreement {
   
   signatureData   String   // Base64
   pdfPath         String?  // Path relative to storage root
+  pdfUrl          String?  // External URL (Google Drive)
   agreementSnapshot String // The text they agreed to
   
   signedAt        DateTime @default(now())

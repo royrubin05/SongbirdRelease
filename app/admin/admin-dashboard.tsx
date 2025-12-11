@@ -10,6 +10,7 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
     const [agreement, setAgreement] = useState(initialAgreement);
     const [isSaving, setIsSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
     // New Creation State
     const [formData, setFormData] = useState({ name: '', email: '', description: '' });
@@ -156,23 +157,37 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                 </header>
 
                 {/* Agreement Editor (Collapsible or smaller? keeping as is for now but usually less important) */}
-                <section className="bg-white rounded-xl shadow-sm border border-[#E6DCC3] overflow-hidden">
-                    <div className="px-4 py-3 bg-[#F9F7F2] border-b border-[#E6DCC3] flex justify-between items-center">
-                        <h2 className="text-base font-bold text-[#2C1810] flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-[#8B5E3C]" /> Template
-                        </h2>
-                        <button onClick={handleSave} className="text-xs font-bold text-[#8B5E3C] hover:text-[#2C1810] uppercase tracking-wide">
-                            {isSaving ? 'Saving...' : 'Save Changes'}
-                        </button>
+                {/* Stats & Actions Row */}
+                <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-[#E6DCC3] flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B6E4E]">Total Waivers</p>
+                            <p className="text-2xl font-bold text-[#2C1810]">{sessions.length}</p>
+                        </div>
+                        <LayoutList className="w-8 h-8 text-[#E6DCC3]" />
                     </div>
-                    <div className="p-0">
-                        <textarea
-                            className="w-full h-32 p-4 text-xs text-[#4A3B32] leading-relaxed resize-none focus:outline-none font-serif bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] bg-blend-multiply"
-                            value={agreement}
-                            onChange={(e) => setAgreement(e.target.value)}
-                            placeholder="Enter the liability release agreement text here..."
-                        />
-                    </div>
+
+                    <button
+                        onClick={() => setIsTemplateModalOpen(true)}
+                        className="bg-white p-4 rounded-xl shadow-sm border border-[#E6DCC3] flex items-center justify-between hover:border-[#8B5E3C] transition-colors group text-left"
+                    >
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B6E4E]">Agreement Template</p>
+                            <p className="text-sm font-bold text-[#2C1810] group-hover:text-[#8B5E3C] transition-colors">Edit Content</p>
+                        </div>
+                        <FileText className="w-8 h-8 text-[#E6DCC3] group-hover:text-[#8B5E3C] transition-colors" />
+                    </button>
+
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-[#2C1810] p-4 rounded-xl shadow-lg border border-[#2C1810] flex items-center justify-between hover:bg-[#4A3B32] transition-colors text-left group"
+                    >
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B6E4E] opacity-80">Quick Action</p>
+                            <p className="text-sm font-bold text-[#FDFBF7]">New Waiver</p>
+                        </div>
+                        <Plus className="w-8 h-8 text-[#8B5E3C] group-hover:text-[#FDFBF7] transition-colors" />
+                    </button>
                 </section>
 
                 {/* Waivers List */}
@@ -345,6 +360,50 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                                             </button>
                                         </div>
                                     </form>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    {/* Template Editor Modal */}
+                    {isTemplateModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C1810]/60 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="bg-[#FDFBF7] rounded-2xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden border border-[#E6DCC3]"
+                            >
+                                <div className="p-4 border-b border-[#E6DCC3] flex justify-between items-center bg-[#F9F7F2]">
+                                    <h3 className="text-lg font-bold text-[#2C1810] font-serif flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-[#8B5E3C]" /> Edit Agreement Template
+                                    </h3>
+                                    <button onClick={() => setIsTemplateModalOpen(false)} className="text-[#9C8C74] hover:text-[#2C1810] transition">
+                                        <XCircle className="w-6 h-6" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 p-0 relative">
+                                    <textarea
+                                        className="w-full h-full p-6 text-sm text-[#4A3B32] leading-relaxed resize-none focus:outline-none font-serif bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] bg-blend-multiply"
+                                        value={agreement}
+                                        onChange={(e) => setAgreement(e.target.value)}
+                                        placeholder="Enter agreement text..."
+                                    />
+                                </div>
+                                <div className="p-4 border-t border-[#E6DCC3] bg-[#F9F7F2] flex justify-end gap-3">
+                                    <button onClick={() => setIsTemplateModalOpen(false)} className="btn-secondary">
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            await handleSave();
+                                            setIsTemplateModalOpen(false);
+                                        }}
+                                        disabled={isSaving}
+                                        className="btn-primary min-w-[120px] justify-center"
+                                    >
+                                        {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </button>
                                 </div>
                             </motion.div>
                         </div>

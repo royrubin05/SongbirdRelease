@@ -3,6 +3,9 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+import { generateWaiverPDF } from '@/lib/pdf-generator';
+import { uploadToDrive } from '@/lib/drive';
+
 export async function saveAgreement(content: string, name: string = "Standard Waiver") {
     await prisma.agreementTemplate.create({
         data: {
@@ -17,10 +20,10 @@ export async function saveAgreement(content: string, name: string = "Standard Wa
 export async function createSigningSession(data: { description?: string, name: string, email: string }) {
     const session = await prisma.signingSession.create({
         data: {
-            description: data.description,
+            description: data.description || `Waiver for ${data.name}`,
             designatedName: data.name,
             designatedEmail: data.email,
-            agreementTemplateId: 1 // Default to the first template
+            agreementTemplateId: 1 // Default link
         }
     });
     revalidatePath('/admin');
@@ -38,15 +41,6 @@ export async function submitSignedAgreement(
         agreementSnapshot: string;
     }
 ) {
-    // 1. Mark session as signed
-    // 2. Create SignedAgreement record
-    // 3. Generate PDF (we might do this in a separate internal API or here if we can run jspdf on server - jspdf is node compatible mostly, or we store the data and let admin generate PDF on demand to avoid complexity?)
-    // Requirement: "On submit, system generates a PDF"
-
-    // Implementation: We will save the data first. 
-    // PDF generation: We can generate it now or later. 
-    // Let's safe the data first.
-
     try {
         const result = await prisma.$transaction(async (tx: any) => {
             // Verify session is valid and not signed
@@ -77,6 +71,56 @@ export async function submitSignedAgreement(
 
             return signed;
         });
+
+        import { sendBackupEmail } from '@/lib/email';
+
+        // ... (previous imports)
+
+        // ... inside submitSignedAgreement
+
+        // --- Automatic Backup Logic ---
+        try {
+            // Fetch fresh data with relations for the generator
+            const fullSession = await prisma.signingSession.findUnique({
+                where: { id: sessionId },
+                include: { signedAgreement: true }
+            });
+
+            if (fullSession && fullSession.signedAgreement) {
+                const pdfBuffer = await generateWaiverPDF(fullSession);
+                const safeName = data.name.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+                const filename = `Waiver_${safeName}_${sessionId.slice(0, 4)}.pdf`;
+
+                // 1. Try Email Backup (User Priority)
+                await sendBackupEmail(
+                    pdfBuffer,
+                    filename,
+                    data.name,
+                    data.email
+                );
+
+                // 2. Try Drive Backup (Secondary/Legacy - kept for when quotas are fixed)
+                try {
+                    const driveFile = await uploadToDrive(
+                        filename,
+                        'application/pdf',
+                        pdfBuffer,
+                        'SongBird-Waivers'
+                    );
+
+                    if (driveFile && driveFile.webViewLink) {
+                        await prisma.signedAgreement.update({
+                            where: { id: result.id },
+                            data: { pdfUrl: driveFile.webViewLink }
+                        });
+                    }
+                } catch (driveError) {
+                    console.warn("Drive Backup skipped/failed (using email instead):", driveError);
+                }
+            }
+        } catch (backupError) {
+            console.error("Automatic Backup failed:", backupError);
+        }
 
         return { success: true, signedId: result.id };
 
