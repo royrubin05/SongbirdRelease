@@ -123,6 +123,6 @@ export async function submitSignedAgreement(
 
     } catch (e) {
         console.error(e);
-        return { success: false, error: e.message || "Failed to submit" };
+        return { success: false, error: (e as any).message || "Failed to submit" };
     }
 }
