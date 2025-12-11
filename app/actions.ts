@@ -3,9 +3,12 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-export async function saveAgreement(content: string) {
+export async function saveAgreement(content: string, name: string = "Standard Waiver") {
     await prisma.agreementTemplate.create({
-        data: { content }
+        data: {
+            name,
+            content
+        }
     });
     revalidatePath('/admin');
     return { success: true };
