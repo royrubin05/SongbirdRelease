@@ -420,7 +420,7 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
 
                 <footer className="mt-12 mb-6 text-center">
                     <p className="text-[10px] uppercase tracking-widest text-[#9C8C74]/60 font-medium">
-                        Songbird Terrace Release App • v1.0.0
+                        Songbird Terrace Release App • v1.0.1
                     </p>
                     <button
                         onClick={() => setIsTemplateModalOpen(true)}
