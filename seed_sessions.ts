@@ -11,7 +11,10 @@ async function main() {
         await prisma.signingSession.create({
             data: {
                 description: `Group Rider ${i} - Standard Package`,
-                isSigned: i % 3 === 0, // Mark every 3rd as signed
+                isSigned: i % 3 === 0,
+                agreementTemplateId: 1, // Default Template
+                designatedName: `Rider ${i}`,
+                designatedEmail: `rider${i}@test.com`
             }
         });
     }
