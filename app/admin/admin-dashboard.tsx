@@ -148,12 +148,7 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                             <p className="text-[#8B5E3C] text-xs uppercase tracking-widest font-medium">Songbird Terrace</p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setIsTemplateModalOpen(true)}
-                                className="bg-white border border-[#E6DCC3] hover:border-[#8B5E3C] text-[#8B6E4E] hover:text-[#2C1810] transition px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
-                            >
-                                <FileText className="w-4 h-4" /> Edit Template
-                            </button>
+
                             <button
                                 onClick={() => setIsModalOpen(true)}
                                 className="btn-primary flex items-center gap-2 shadow-lg shadow-[#2C1810]/20 transform transition hover:scale-105 active:scale-95 text-sm py-2 px-4"
@@ -432,6 +427,12 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                     <p className="text-[10px] uppercase tracking-widest text-[#9C8C74]/60 font-medium">
                         Songbird Terrace Release App • v1.0.0
                     </p>
+                    <button
+                        onClick={() => setIsTemplateModalOpen(true)}
+                        className="mt-4 text-[#8B6E4E]/60 hover:text-[#2C1810] text-xs flex items-center justify-center gap-1 mx-auto transition"
+                    >
+                        <FileText className="w-3 h-3" /> Edit Template
+                    </button>
                 </footer>
             </div>
         </div>
