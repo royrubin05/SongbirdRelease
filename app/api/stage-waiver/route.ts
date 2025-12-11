@@ -1,10 +1,12 @@
-
+```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
 import { jsPDF } from 'jspdf';
+import { uploadToDrive } from '@/lib/drive';
 import { Buffer } from 'buffer';
-import fs from 'fs';
 import path from 'path';
+
+const prisma = new PrismaClient();
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +44,7 @@ export async function GET(request: NextRequest) {
         doc.setFontSize(9);
         doc.setTextColor(100);
         doc.setFont("helvetica", "normal");
-        doc.text(`Reference: ${session.id.slice(0, 8).toUpperCase()}`, 105, 26, { align: "center" });
+        doc.text(`Reference: ${ session.id.slice(0, 8).toUpperCase() } `, 105, 26, { align: "center" });
 
         // Signer Details Box
         doc.setDrawColor(200);
@@ -132,33 +134,29 @@ export async function GET(request: NextRequest) {
         // --- STAGING LOGIC ---
         // 1. Determine filename
         const safeName = sa.customerName.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
-        const filename = `Waiver_${safeName}.pdf`;
+        const filename = `Waiver_${ safeName }.pdf`;
 
-        // 2. Write to public/downloads
-        const publicDir = path.join(process.cwd(), 'public', 'downloads');
-        // Ensure directory exists (redundant safety)
-        if (!fs.existsSync(publicDir)) {
-            fs.mkdirSync(publicDir, { recursive: true });
-        }
+        // 2. Generate PDF Buffer and Upload
+        const pdfOutput = doc.output('arraybuffer');
+        const buffer = Buffer.from(pdfOutput);
 
-        const filePath = path.join(publicDir, filename);
-        const arrayBuffer = doc.output('arraybuffer');
-        fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
-
-        console.log(`Staged PDF at: ${filePath}`);
-
-        // 3. Return public URL
-        // Append timestamp to bust browser cache of the static file itself if content changed
-        const publicUrl = `/downloads/${filename}?t=${Date.now()}`;
+        // Upload to Google Drive
+        const driveFile = await uploadToDrive(
+            filename,
+            'application/pdf',
+            buffer,
+            'SongBird-Waivers'
+        );
 
         return NextResponse.json({
             success: true,
-            url: publicUrl,
-            filename: filename
+            url: driveFile.webViewLink,
+            filename
         });
 
     } catch (error) {
-        console.error('Staging Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        console.error('Error generating PDF:', error);
+        return NextResponse.json({ success: false, error: 'Failed to generate waiver' }, { status: 500 });
     }
 }
+```
