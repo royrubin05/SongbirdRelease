@@ -32,25 +32,24 @@ async function main() {
             isSigned: true,
             agreementTemplateId: template ? template.id : 1
         }
-    }
     });
 
-// Create the signed agreement
-await prisma.signedAgreement.create({
-    data: {
-        sessionId: session.id,
-        customerName: 'Alice Tester',
-        customerEmail: 'alice@example.com',
-        customerPhone: '(555) 019-2834',
-        customerAddress: '42 Wallaby Way, Sydney, NSW',
-        // Simple signature (dot)
-        signatureData: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-        agreementSnapshot: template?.content || "This is a liability release waiver for Songbird Terrace. By signing this, you agree to release us from liability for any accidents or injuries that may occur on the premises.",
-        signedAt: new Date(),
-    }
-});
+    // Create the signed agreement
+    await prisma.signedAgreement.create({
+        data: {
+            sessionId: session.id,
+            customerName: 'Alice Tester',
+            customerEmail: 'alice@example.com',
+            customerPhone: '(555) 019-2834',
+            customerAddress: '42 Wallaby Way, Sydney, NSW',
+            // Simple signature (dot)
+            signatureData: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            agreementSnapshot: template?.content || "This is a liability release waiver for Songbird Terrace. By signing this, you agree to release us from liability for any accidents or injuries that may occur on the premises.",
+            signedAt: new Date(),
+        }
+    });
 
-console.log('Database reset and seeded with 1 completed waiver.');
+    console.log('Database reset and seeded with 1 completed waiver.');
 }
 
 main()
