@@ -1,4 +1,3 @@
-```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { jsPDF } from 'jspdf';
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest) {
         doc.setFontSize(9);
         doc.setTextColor(100);
         doc.setFont("helvetica", "normal");
-        doc.text(`Reference: ${ session.id.slice(0, 8).toUpperCase() } `, 105, 26, { align: "center" });
+        doc.text(`Reference: ${session.id.slice(0, 8).toUpperCase()} `, 105, 26, { align: "center" });
 
         // Signer Details Box
         doc.setDrawColor(200);
@@ -134,7 +133,7 @@ export async function GET(request: NextRequest) {
         // --- STAGING LOGIC ---
         // 1. Determine filename
         const safeName = sa.customerName.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
-        const filename = `Waiver_${ safeName }.pdf`;
+        const filename = `Waiver_${safeName}.pdf`;
 
         // 2. Generate PDF Buffer and Upload
         const pdfOutput = doc.output('arraybuffer');
@@ -159,4 +158,3 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Failed to generate waiver' }, { status: 500 });
     }
 }
-```
