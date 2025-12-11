@@ -93,11 +93,11 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                 // This guarantees correct filename because it IS a file 
                 window.open(data.url, '_blank');
             } else {
-                addToast('Failed to generate download', 'error');
+                showNotification('Failed to generate download', 'error');
             }
         } catch (e) {
             console.error(e);
-            addToast('Download error', 'error');
+            showNotification('Download error', 'error');
         }
     };
 
