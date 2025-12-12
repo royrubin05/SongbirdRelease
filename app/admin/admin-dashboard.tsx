@@ -31,24 +31,41 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
     };
 
     // Confetti Logic for New Signatures
-    useEffect(() => {
-        const signedCount = sessions.filter(s => s.isSigned).length;
-        const storedCount = localStorage.getItem('lastSignedCount');
-        const prevCount = storedCount ? parseInt(storedCount) : 0;
+    const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
 
-        if (signedCount > prevCount) {
-            // New signature detected!
+    // Confetti & Highlighting Logic
+    useEffect(() => {
+        const signedIds = sessions.filter(s => s.isSigned).map(s => s.id);
+        const storedIdsJSON = localStorage.getItem('signedSessionIds');
+        const storedIds = storedIdsJSON ? JSON.parse(storedIdsJSON) : [];
+
+        // Find IDs that are in current signedIds but NOT in storedIds
+        const newIds = signedIds.filter(id => !storedIds.includes(id));
+
+        if (newIds.length > 0) {
+            // New signature(s) detected!
             confetti({
                 particleCount: 150,
                 spread: 70,
-                origin: { y: 0.6 }
+                origin: { y: 0.6 },
+                colors: ['#8B5E3C', '#E6DCC3', '#22c55e'] // Brand colors + Green
             });
-            showNotification(`New Waiver Signed! (${signedCount} total)`);
-        } else if (signedCount < prevCount) {
-            // Handle case where we deleted some (reset count without celebrating)
+            showNotification(`New Waiver Signed!`);
+
+            // Highlight specific cards
+            setHighlightedIds(new Set(newIds));
+
+            // Remove highlight after 5 seconds
+            setTimeout(() => {
+                setHighlightedIds(new Set());
+            }, 5000);
         }
 
-        localStorage.setItem('lastSignedCount', signedCount.toString());
+        // Update storage
+        localStorage.setItem('signedSessionIds', JSON.stringify(signedIds));
+
+        // Also keep legacy count for fallback or migration if needed, though mostly replaced now
+        localStorage.setItem('lastSignedCount', signedIds.length.toString());
     }, [sessions]);
 
     const handleSave = async () => {
@@ -256,7 +273,8 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                                     initial={{ opacity: 0, scale: 0.98 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.98 }}
-                                    className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-all relative flex flex-col ${session.isSigned ? 'border-[#E6DCC3]/60 p-3' : 'p-4 border-[#D4B483] border-l-4'}`}
+                                    className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-all duration-500 relative flex flex-col ${highlightedIds.has(session.id) ? 'ring-2 ring-emerald-500 ring-offset-2 scale-105 shadow-emerald-100' : ''
+                                        } ${session.isSigned ? 'border-[#E6DCC3]/60 p-3' : 'p-4 border-[#D4B483] border-l-4'}`}
                                 >
                                     <div className="flex justify-between items-start mb-1">
                                         <h3 className="font-bold text-[#2C1810] text-sm truncate flex-1 pr-2">
