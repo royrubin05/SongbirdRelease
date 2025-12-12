@@ -5,6 +5,8 @@ import { saveAgreement, createSigningSession, deleteSigningSession } from '../ac
 import { CheckCircle2, AlertCircle, XCircle, Copy, FileText, Plus, Download, Search, LayoutList, CheckSquare, Clock, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
+import { useEffect } from 'react';
 
 export default function AdminDashboard({ initialAgreement, sessions }: { initialAgreement: string, sessions: any[] }) {
     const [agreement, setAgreement] = useState(initialAgreement);
@@ -28,11 +30,36 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
         setTimeout(() => setToast(null), 3000);
     };
 
+    // Confetti Logic for New Signatures
+    useEffect(() => {
+        const signedCount = sessions.filter(s => s.isSigned).length;
+        const storedCount = localStorage.getItem('lastSignedCount');
+        const prevCount = storedCount ? parseInt(storedCount) : 0;
+
+        if (signedCount > prevCount) {
+            // New signature detected!
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+            showNotification(`New Waiver Signed! (${signedCount} total)`);
+        } else if (signedCount < prevCount) {
+            // Handle case where we deleted some (reset count without celebrating)
+        }
+
+        localStorage.setItem('lastSignedCount', signedCount.toString());
+    }, [sessions]);
+
     const handleSave = async () => {
         setIsSaving(true);
-        await saveAgreement(agreement);
+        const res = await saveAgreement(agreement);
         setIsSaving(false);
-        showNotification('Agreement saved successfully!');
+        if (res.success) {
+            showNotification('Agreement saved successfully!');
+        } else {
+            showNotification(res.error || 'Failed to save', 'error');
+        }
     };
 
     const copyToClipboard = async (text: string) => {

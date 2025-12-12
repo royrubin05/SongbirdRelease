@@ -8,14 +8,19 @@ import { uploadToDrive } from '@/lib/drive';
 import { sendBackupEmail } from '@/lib/email';
 
 export async function saveAgreement(content: string, name: string = "Standard Waiver") {
-    await prisma.agreementTemplate.create({
-        data: {
-            name,
-            content
-        }
-    });
-    revalidatePath('/admin');
-    return { success: true };
+    try {
+        await prisma.agreementTemplate.create({
+            data: {
+                name,
+                content
+            }
+        });
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e) {
+        console.error("Save failed:", e);
+        return { success: false, error: "Failed to save template" };
+    }
 }
 
 export async function createSigningSession(data: { description?: string, name: string, email: string }) {
