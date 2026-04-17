@@ -22,7 +22,11 @@ jobs:
     steps:
       - name: Ping health endpoint
         run: |
-          URL="https://songbird-waiver.platform63.com/api/health"
+          # NOTE: pointing at the Vercel alias, not songbird-waiver.platform63.com.
+          # The platform63 subdomain currently resolves to a non-Vercel IP
+          # (Google-hosted) and 404s. If/when you re-point that subdomain to
+          # this Vercel project, you can switch this URL.
+          URL="https://songbird-release.vercel.app/api/health"
           echo "Pinging $URL"
           # -f fails on 4xx/5xx so the job turns red if the DB is actually down
           # -sS shows errors but hides progress
