@@ -1,21 +1,35 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+// Body / UI — neutral, highly legible at small sizes.
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+// Display / headings — warm, slightly editorial, anchors the boutique tone.
+// Variable axes are narrowed to what we actually use to keep the payload small.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  axes: ["opsz", "SOFT"],
+});
 
 export const metadata: Metadata = {
-  title: "Liability Release",
-  description: "Secure Digital Signing",
+  title: "Songbird Terrace · Liability Release",
+  description: "Secure Digital Signing for Songbird Terrace",
   manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#2C1810",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // App-like feel
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -24,8 +38,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

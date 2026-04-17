@@ -1,36 +1,245 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   Songbird Terrace — Design Tokens
+   Palette: warm cream, espresso, leather, gold.
+   Contrast: every token used for text-on-background passes WCAG AA.
+   ========================================================================= */
+
 @theme {
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-sans), "Inter", system-ui, sans-serif;
+  --font-display: var(--font-display), "Fraunces", Georgia, serif;
 }
 
 :root {
-  --background: #FDFBF7;
-  /* Warm Cream */
-  --foreground: #2C1810;
-  /* Dark Brown */
-  --primary: #8B5E3C;
-  /* Leather/Brown */
-  --primary-foreground: #FFFFFF;
-  --accent: #D4B483;
-  /* Gold/Beige */
-  --muted: #F5F0E6;
+  /* Surface */
+  --bg: #FDFBF7;              /* warm cream — page */
+  --bg-muted: #F6EFE1;        /* softer cream — wells, cards on pages */
+  --bg-white: #FFFFFF;        /* card surface */
+  --bg-inverse: #2C1810;      /* dark brown — primary buttons, modal scrims */
+
+  /* Text */
+  --text: #2C1810;            /* espresso — body headings */
+  --text-soft: #4A3B32;       /* softened espresso — body copy */
+  --text-muted: #6B4A2E;      /* WCAG AA on cream (contrast 5.8:1) — labels */
+  --text-subtle: #9C8C74;     /* large-text only — timestamps, placeholders */
+  --text-inverse: #FDFBF7;
+
+  /* Accent */
+  --accent: #8B5E3C;          /* leather brown — interactive, icons */
+  --accent-strong: #6B4320;   /* darker leather — hover states */
+  --gold: #D4B483;            /* gold — pending stripe, highlights */
+  --gold-soft: #F5E6D3;       /* gold tint for pending backgrounds */
+
+  /* Borders */
+  --border-subtle: #EFE6D0;   /* hairline dividers within cards */
+  --border: #E6DCC3;          /* default */
+  --border-strong: #D4BE95;   /* emphasized, sections */
+
+  /* Status */
+  --success: #3F7D4A;         /* warm green (not neon) */
+  --success-soft: #E7F0E2;
+  --danger: #A4382E;
+  --danger-soft: #FBE9E6;
+
+  /* Shadows — warm brown tint instead of neutral gray */
+  --shadow-sm: 0 1px 2px rgba(44, 24, 16, 0.04), 0 1px 1px rgba(44, 24, 16, 0.03);
+  --shadow-md: 0 2px 4px rgba(44, 24, 16, 0.05), 0 4px 12px rgba(44, 24, 16, 0.04);
+  --shadow-lg: 0 4px 8px rgba(44, 24, 16, 0.07), 0 12px 32px rgba(44, 24, 16, 0.06);
+  --shadow-card: 0 1px 2px rgba(44, 24, 16, 0.04), 0 2px 8px rgba(44, 24, 16, 0.03);
+  --shadow-card-hover: 0 2px 4px rgba(44, 24, 16, 0.06), 0 8px 20px rgba(44, 24, 16, 0.08);
+
+  /* Focus — visible on warm palette, not harsh */
+  --focus-ring: 0 0 0 3px rgba(139, 94, 60, 0.35);
 }
 
+/* =========================================================================
+   Base
+   ========================================================================= */
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern", "liga", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+/* Default focus ring — removed mouse, kept keyboard (a11y) */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 6px;
+}
+
+/* Selection picks up brand color */
+::selection { background: var(--gold-soft); color: var(--text); }
+
+/* =========================================================================
+   Typography utilities
+   ========================================================================= */
+
+.font-display { font-family: var(--font-display); font-feature-settings: "ss01", "kern"; }
+
+/* Display — serif headings, tight tracking, soft optical size */
+.display-xl { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.05; letter-spacing: -0.02em; font-weight: 500; font-variation-settings: "opsz" 144, "SOFT" 50; }
+.display-lg { font-family: var(--font-display); font-size: 1.75rem; line-height: 1.1; letter-spacing: -0.015em; font-weight: 500; font-variation-settings: "opsz" 96, "SOFT" 50; }
+.display-md { font-family: var(--font-display); font-size: 1.375rem; line-height: 1.2; letter-spacing: -0.01em; font-weight: 500; font-variation-settings: "opsz" 60, "SOFT" 40; }
+
+/* Eyebrow — small uppercase label above a section */
+.eyebrow {
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+}
+
+/* Body reading — used for agreement text */
+.prose-reading {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--text-soft);
+  font-variation-settings: "opsz" 14;
+}
+
+/* =========================================================================
+   Form controls
+   ========================================================================= */
+
+.field-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 0.375rem;
 }
 
 .modern-input {
-  @apply block w-full rounded-lg border-[#E6DCC3] bg-white p-3 text-sm text-[#2C1810] placeholder:text-[#9C8C74] focus:border-[#8B5E3C] focus:bg-white focus:ring-1 focus:ring-[#8B5E3C] transition-all duration-200 outline-none shadow-sm;
+  @apply block w-full rounded-lg bg-white px-3.5 py-3 text-sm transition-all duration-150 outline-none;
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.modern-input::placeholder { color: var(--text-subtle); }
+.modern-input:hover { border-color: var(--border-strong); }
+.modern-input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+.modern-input:disabled,
+.modern-input[readonly] {
+  background: var(--bg-muted);
+  color: var(--text-soft);
+  cursor: not-allowed;
 }
 
+/* =========================================================================
+   Buttons
+   ========================================================================= */
+
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-lg bg-[#2C1810] px-4 py-2 text-sm font-medium text-[#FDFBF7] transition-colors hover:bg-[#4A2C20] disabled:opacity-50 disabled:pointer-events-none active:scale-95 transform duration-100 shadow-md shadow-[#2C1810]/10;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-150;
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-md);
+  letter-spacing: 0.01em;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #1F110A;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+.btn-primary:active:not(:disabled) { transform: translateY(0); }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-lg border border-[#E6DCC3] bg-white px-4 py-2 text-sm font-medium text-[#2C1810] hover:bg-[#FDFBF7] focus:outline-none transition-all active:scale-95 shadow-sm;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-150;
+  background: var(--bg-white);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+}
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150;
+  color: var(--text-muted);
+}
+.btn-ghost:hover { color: var(--text); background: var(--bg-muted); }
+
+/* =========================================================================
+   Cards
+   ========================================================================= */
+
+.card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+/* =========================================================================
+   Decorative
+   ========================================================================= */
+
+/* Thin gold divider used under brand wordmarks */
+.gold-rule {
+  display: block;
+  width: 48px;
+  height: 1.5px;
+  margin: 0.625rem auto 0;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+/* Subtle paper grain for large surfaces (very low opacity) */
+.paper-grain {
+  background-image:
+    radial-gradient(circle at 25% 15%, rgba(139, 94, 60, 0.015) 0, transparent 40%),
+    radial-gradient(circle at 75% 85%, rgba(139, 94, 60, 0.02) 0, transparent 40%);
+}
+
+/* Scrollbar — warm-toned, subtle */
+.custom-scroll::-webkit-scrollbar { width: 8px; }
+.custom-scroll::-webkit-scrollbar-track { background: transparent; }
+.custom-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+.custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* Shine animation for primary CTA when enabled */
+@keyframes shine {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+.btn-shine { position: relative; overflow: hidden; isolation: isolate; }
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  transform: translateX(-120%) skewX(-20deg);
+  pointer-events: none;
+}
+.btn-shine:hover:not(:disabled)::after {
+  animation: shine 0.9s ease-out;
 }

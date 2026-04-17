@@ -1,79 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { saveAgreement, createSigningSession, deleteSigningSession } from '../actions';
-import { CheckCircle2, AlertCircle, XCircle, Copy, FileText, Plus, Download, Search, LayoutList, CheckSquare, Clock, Trash2 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
+import {
+    CheckCircle2, AlertCircle, XCircle, Copy, FileText, Plus, Download, Search,
+    LayoutList, Clock, Trash2, Sparkles, TrendingUp, Link as LinkIcon, MoreHorizontal,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { useEffect } from 'react';
 
-export default function AdminDashboard({ initialAgreement, sessions }: { initialAgreement: string, sessions: any[] }) {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+type SessionRow = {
+    id: string;
+    status: string;
+    description: string | null;
+    designatedName: string | null;
+    designatedEmail: string | null;
+    isSigned: boolean;
+    createdAt: string;
+    signedAgreement: {
+        customerName: string;
+        customerEmail: string | null;
+        signedAt: string;
+    } | null;
+};
+
+export default function AdminDashboard({
+    initialAgreement,
+    sessions,
+}: {
+    initialAgreement: string;
+    sessions: SessionRow[];
+}) {
     const [agreement, setAgreement] = useState(initialAgreement);
     const [isSaving, setIsSaving] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
-    // New Creation State
     const [formData, setFormData] = useState({ name: '', email: '', description: '' });
-
-    // Filtering & Pagination State
     const [searchTerm, setSearchTerm] = useState('');
     const [currentFilter, setCurrentFilter] = useState<'all' | 'pending' | 'signed'>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 9;
 
-    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
 
     const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
+        setTimeout(() => setToast(null), 3200);
     };
 
-    // Confetti Logic for New Signatures
-    const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
-
-    // Confetti & Highlighting Logic
-    useEffect(() => {
-        const signedIds = sessions.filter(s => s.isSigned).map(s => s.id);
-        const storedIdsJSON = localStorage.getItem('signedSessionIds');
-        const storedIds = storedIdsJSON ? JSON.parse(storedIdsJSON) : [];
-
-        // Find IDs that are in current signedIds but NOT in storedIds
-        const newIds = signedIds.filter(id => !storedIds.includes(id));
-
-        if (newIds.length > 0) {
-            // New signature(s) detected!
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#8B5E3C', '#E6DCC3', '#22c55e'] // Brand colors + Green
-            });
-            showNotification(`New Waiver Signed!`);
-
-            // Highlight specific cards
-            setHighlightedIds(new Set(newIds));
-
-            // Remove highlight after 5 seconds
-            setTimeout(() => {
-                setHighlightedIds(new Set());
-            }, 5000);
-        }
-
-        // Update storage
-        localStorage.setItem('signedSessionIds', JSON.stringify(signedIds));
-
-        // Also keep legacy count for fallback or migration if needed, though mostly replaced now
-        localStorage.setItem('lastSignedCount', signedIds.length.toString());
+    /* -------- stats -------- */
+    const stats = useMemo(() => {
+        const total = sessions.length;
+        const signed = sessions.filter((s) => s.isSigned).length;
+        const pending = total - signed;
+        const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const thisWeek = sessions.filter(
+            (s) => s.isSigned && s.signedAgreement && new Date(s.signedAgreement.signedAt).getTime() >= oneWeekAgo
+        ).length;
+        const rate = total === 0 ? 0 : Math.round((signed / total) * 100);
+        return { total, signed, pending, thisWeek, rate };
     }, [sessions]);
 
+    /* -------- confetti + highlight on new signatures (polished) -------- */
+    useEffect(() => {
+        const signedIds = sessions.filter((s) => s.isSigned).map((s) => s.id);
+        const stored: string[] = JSON.parse(localStorage.getItem('signedSessionIds') || '[]');
+        const newIds = signedIds.filter((id) => !stored.includes(id));
+
+        if (newIds.length > 0 && stored.length > 0) {
+            // Tamer, brand-aligned confetti — gold + cream only, less spread.
+            confetti({
+                particleCount: 90,
+                spread: 55,
+                startVelocity: 32,
+                ticks: 140,
+                origin: { y: 0.25 },
+                colors: ['#D4B483', '#8B5E3C', '#F5E6D3'],
+                scalar: 0.9,
+            });
+            showNotification('New waiver signed');
+            setHighlightedIds(new Set(newIds));
+            setTimeout(() => setHighlightedIds(new Set()), 4500);
+        }
+        localStorage.setItem('signedSessionIds', JSON.stringify(signedIds));
+    }, [sessions]);
+
+    /* -------- actions -------- */
     const handleSave = async () => {
         setIsSaving(true);
         const res = await saveAgreement(agreement);
         setIsSaving(false);
         if (res.success) {
-            showNotification('Agreement saved successfully!');
+            showNotification('Agreement saved');
         } else {
             showNotification(res.error || 'Failed to save', 'error');
         }
@@ -83,270 +105,220 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
         try {
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
-                showNotification('Link copied to clipboard');
             } else {
-                // Fallback for non-secure contexts (e.g. mobile LAN testing)
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = "fixed";
-                textArea.style.left = "-9999px";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showNotification('Link copied to clipboard');
-                } catch (err) {
-                    console.error('Fallback copy failed', err);
-                    showNotification('Copy failed (try manual selection)', 'error');
-                }
-                document.body.removeChild(textArea);
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
             }
-        } catch (err) {
-            console.error('Copy failed', err);
+            showNotification('Link copied');
+        } catch {
             showNotification('Copy failed', 'error');
         }
     };
 
     const handleCreateLink = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Basic validation
         if (!formData.name.trim() || !formData.email.trim()) {
-            showNotification('Name and Email are required', 'error');
+            showNotification('Name and email are required', 'error');
             return;
         }
-
-        const result = await createSigningSession({ ...formData, description: formData.name }); // Use name as description/reference implicitly if needed, or just omit
+        const result = await createSigningSession({ ...formData, description: formData.name });
         if (result.success) {
             const url = `${window.location.origin}/sign/${result.id}`;
             copyToClipboard(url);
-            showNotification('Waiver created & link copied!');
             setFormData({ name: '', email: '', description: '' });
-            setIsModalOpen(false);
+            setIsCreateModalOpen(false);
         }
     };
 
-    const handleStagedDownload = async (session: any) => {
+    const handleStagedDownload = async (session: SessionRow) => {
         try {
-            // New Strategy: Call API to stage file -> Get static URL -> Open URL
             const res = await fetch(`/api/stage-waiver?sessionId=${session.id}`);
             if (!res.ok) throw new Error('Staging failed');
             const data = await res.json();
-
             if (data.success && data.url) {
-                // Open the static file directly
-                // This guarantees correct filename because it IS a file 
                 window.open(data.url, '_blank');
             } else {
                 showNotification('Failed to generate download', 'error');
             }
-        } catch (e) {
-            console.error(e);
+        } catch {
             showNotification('Download error', 'error');
         }
     };
 
-    const renderDownloadButton = (session: any) => {
-        return (
-            <button
-                onClick={() => handleStagedDownload(session)}
-                className="flex-1 text-[#4A3B32] hover:text-[#2C1810] hover:bg-[#F9F7F2] rounded py-1 text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer"
-            >
-                <Download className="w-3 h-3" /> Download PDF
-            </button>
-        );
+    const handleDelete = async (session: SessionRow) => {
+        const label = session.signedAgreement?.customerName || session.designatedName || 'this waiver';
+        if (!confirm(`Delete ${label}? This cannot be undone.`)) return;
+        const res = await deleteSigningSession(session.id);
+        if (res.success) showNotification('Waiver deleted');
+        else showNotification('Delete failed', 'error');
     };
 
-
-    // Filter Logic
-    const filteredSessions = sessions.filter(s => {
+    /* -------- filter + paginate -------- */
+    const filteredSessions = sessions.filter((s) => {
+        const q = searchTerm.toLowerCase();
         const matchesSearch =
-            s.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.designatedName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.signedAgreement?.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-
+            !q ||
+            s.description?.toLowerCase().includes(q) ||
+            s.designatedName?.toLowerCase().includes(q) ||
+            s.designatedEmail?.toLowerCase().includes(q) ||
+            s.signedAgreement?.customerName.toLowerCase().includes(q);
         const matchesStatus =
-            currentFilter === 'all' ? true :
-                currentFilter === 'pending' ? !s.isSigned :
-                    currentFilter === 'signed' ? s.isSigned : true;
-
+            currentFilter === 'all' ? true : currentFilter === 'pending' ? !s.isSigned : s.isSigned;
         return matchesSearch && matchesStatus;
     });
 
-    const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
+    const totalPages = Math.max(1, Math.ceil(filteredSessions.length / itemsPerPage));
     const paginatedSessions = filteredSessions.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
 
     return (
-        <div className="min-h-screen bg-[#FDFBF7] p-4 md:p-8 font-sans text-[#2C1810]">
-            <div className="max-w-6xl mx-auto space-y-6">
-                {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E6DCC3] pb-4">
-                    <div className="flex items-center gap-4">
+        <div className="min-h-screen bg-[var(--bg)] paper-grain pb-20">
+            {/* Masthead */}
+            <header className="border-b border-[var(--border)] bg-[var(--bg)]/90 backdrop-blur-md sticky top-0 z-20">
+                <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/logo.png" alt="Songbird Terrace" className="h-12 w-auto object-contain drop-shadow-sm" />
-                        <div>
-                            <h1 className="text-2xl font-serif text-[#2C1810] tracking-tight">Waiver Dashboard</h1>
-                            <p className="text-[#8B5E3C] text-xs uppercase tracking-widest font-medium">Songbird Terrace</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-
-
+                        <img src="/logo.png" alt="Songbird Terrace" className="h-11 w-auto object-contain drop-shadow-sm" />
+                        <div className="hidden sm:block border-l border-[var(--border)] pl-3">
+                            <h1 className="display-md leading-none">Waiver Dashboard</h1>
+                            <p className="eyebrow mt-1">Songbird Terrace</p>
                         </div>
                     </div>
-                </header>
-
-                {/* Stats Row */}
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-[#E6DCC3] flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B6E4E]">Total Waivers</p>
-                            <p className="text-2xl font-bold text-[#2C1810]">{sessions.length}</p>
-                        </div>
-                        <LayoutList className="w-8 h-8 text-[#E6DCC3]" />
+                    <div className="flex items-center gap-2">
+                        <span
+                            className="hidden md:inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--success)] bg-[var(--success-soft)] border border-[var(--success)]/20 rounded-full px-2.5 py-1"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
+                            Live
+                        </span>
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="btn-primary"
+                        >
+                            <Plus className="w-4 h-4" aria-hidden="true" />
+                            <span className="hidden sm:inline">New Waiver</span>
+                            <span className="sm:hidden">New</span>
+                        </button>
                     </div>
+                </div>
+            </header>
 
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-[#2C1810] p-4 rounded-xl shadow-lg border border-[#2C1810] flex items-center justify-between hover:bg-[#4A3B32] transition-colors text-left group"
-                    >
-                        <div>
-                            <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B6E4E] opacity-80">Quick Action</p>
-                            <p className="text-sm font-bold text-[#FDFBF7]">New Waiver</p>
-                        </div>
-                        <Plus className="w-8 h-8 text-[#8B5E3C] group-hover:text-[#FDFBF7] transition-colors" />
-                    </button>
+            <main className="max-w-6xl mx-auto px-4 md:px-8 pt-6 md:pt-10 space-y-8">
+                {/* Stats row */}
+                <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <StatCard label="Total" value={stats.total} icon={<LayoutList className="w-4 h-4" />} />
+                    <StatCard
+                        label="Pending"
+                        value={stats.pending}
+                        icon={<Clock className="w-4 h-4" />}
+                        tone="gold"
+                    />
+                    <StatCard
+                        label="Signed this Week"
+                        value={stats.thisWeek}
+                        icon={<Sparkles className="w-4 h-4" />}
+                        tone="success"
+                    />
+                    <StatCard
+                        label="Completion"
+                        value={`${stats.rate}%`}
+                        icon={<TrendingUp className="w-4 h-4" />}
+                    />
                 </section>
 
-                {/* Waivers List */}
+                {/* Waivers section */}
                 <section className="space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-baseline gap-3">
-                            <h2 className="text-xl font-bold text-[#2C1810] font-serif">Waivers</h2>
-                            <span className="text-[#8B6E4E] text-xs font-medium bg-[#F9F7F2] px-2 py-0.5 rounded-full border border-[#E6DCC3]">{sessions.length} total</span>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div>
+                            <h2 className="display-md">Waivers</h2>
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                                {filteredSessions.length} {filteredSessions.length === 1 ? 'result' : 'results'}
+                                {currentFilter !== 'all' && <> · filtered by {currentFilter}</>}
+                                {searchTerm && <> · matching &ldquo;{searchTerm}&rdquo;</>}
+                            </p>
                         </div>
-                        <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto text-sm">
-                            {/* Filter Tabs */}
-                            <div className="flex bg-[#F9F7F2] p-1 rounded-lg border border-[#E6DCC3]">
-                                <button
+                        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                            {/* Filter tabs */}
+                            <div role="tablist" aria-label="Filter waivers" className="inline-flex bg-white border border-[var(--border)] rounded-lg p-1 shadow-[var(--shadow-sm)]">
+                                <FilterTab
+                                    label="All"
+                                    count={stats.total}
+                                    active={currentFilter === 'all'}
                                     onClick={() => { setCurrentFilter('all'); setCurrentPage(1); }}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${currentFilter === 'all' ? 'bg-[#8B5E3C] text-[#FDFBF7] shadow-sm' : 'text-[#8B5E3C] hover:bg-[#E6DCC3]/50'}`}
-                                >
-                                    All
-                                </button>
-                                <button
+                                />
+                                <FilterTab
+                                    label="Pending"
+                                    count={stats.pending}
+                                    active={currentFilter === 'pending'}
                                     onClick={() => { setCurrentFilter('pending'); setCurrentPage(1); }}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${currentFilter === 'pending' ? 'bg-[#8B5E3C] text-[#FDFBF7] shadow-sm' : 'text-[#8B5E3C] hover:bg-[#E6DCC3]/50'}`}
-                                >
-                                    Pending
-                                </button>
-                                <button
+                                />
+                                <FilterTab
+                                    label="Signed"
+                                    count={stats.signed}
+                                    active={currentFilter === 'signed'}
                                     onClick={() => { setCurrentFilter('signed'); setCurrentPage(1); }}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${currentFilter === 'signed' ? 'bg-[#8B5E3C] text-[#FDFBF7] shadow-sm' : 'text-[#8B5E3C] hover:bg-[#E6DCC3]/50'}`}
-                                >
-                                    Completed
-                                </button>
+                                />
                             </div>
 
                             {/* Search */}
-                            <div className="relative w-full md:w-56">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9C8C74]" />
+                            <div className="relative w-full sm:w-60">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-subtle)]" aria-hidden="true" />
                                 <input
-                                    type="text"
-                                    placeholder="Search name..."
-                                    className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-[#E6DCC3] bg-white focus:outline-none focus:border-[#8B5E3C] focus:ring-1 focus:ring-[#8B5E3C] w-full shadow-sm text-[#2C1810]"
+                                    type="search"
+                                    placeholder="Search name or email…"
+                                    className="modern-input pl-9 py-2 text-sm"
                                     value={searchTerm}
                                     onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                    aria-label="Search waivers"
                                 />
                             </div>
                         </div>
                     </div>
 
+                    {/* Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         <AnimatePresence mode="popLayout">
-                            {paginatedSessions.map((session) => (
-                                <motion.div
+                            {paginatedSessions.map((session, i) => (
+                                <WaiverCard
                                     key={session.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.98 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.98 }}
-                                    className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-all duration-500 relative flex flex-col ${highlightedIds.has(session.id) ? 'ring-2 ring-emerald-500 ring-offset-2 scale-105 shadow-emerald-100' : ''
-                                        } ${session.isSigned ? 'border-[#E6DCC3]/60 p-3' : 'p-4 border-[#D4B483] border-l-4'}`}
-                                >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h3 className="font-bold text-[#2C1810] text-sm truncate flex-1 pr-2">
-                                            {session.designatedName || session.description || 'Guest'}
-                                        </h3>
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${session.isSigned ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                                            {session.isSigned ? 'Completed' : 'Pending'}
-                                        </span>
-                                    </div>
-
-                                    {/* Metadata */}
-                                    <div className="text-[11px] text-[#8B6E4E] space-y-0.5 mb-2 leading-tight">
-                                        {session.designatedEmail && <p className="truncate">{session.designatedEmail}</p>}
-                                        {!session.isSigned && <p className="text-[#9C8C74]">{new Date(session.createdAt).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' })}</p>}
-                                        {session.isSigned && session.signedAgreement && <p className="text-green-700/70">Signed: {new Date(session.signedAgreement.signedAt).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' })}</p>}
-                                    </div>
-
-                                    {/* Action Area */}
-                                    <div className="mt-auto pt-2 border-t border-[#F5F0E6] flex gap-2">
-                                        {!session.isSigned ? (
-                                            <button
-                                                onClick={() => {
-                                                    copyToClipboard(`${window.location.origin}/sign/${session.id}`);
-                                                }}
-                                                className="flex-1 btn-secondary text-xs py-1.5 flex items-center justify-center gap-1 hover:bg-[#FDFBF7]"
-                                            >
-                                                <Copy className="w-3 h-3" /> Copy Link
-                                            </button>
-                                        ) : (
-                                            renderDownloadButton(session)
-                                        )}
-                                        <button
-                                            onClick={async () => {
-                                                if (confirm('Are you sure you want to delete this waiver? This cannot be undone.')) {
-                                                    const res = await deleteSigningSession(session.id);
-                                                    if (res.success) showNotification('Waiver deleted');
-                                                    else showNotification('Delete failed', 'error');
-                                                }
-                                            }}
-                                            className="text-gray-400 hover:text-red-600 p-1.5 transition-colors rounded-md hover:bg-red-50 ml-1"
-                                            title="Delete Waiver"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </motion.div>
+                                    session={session}
+                                    index={i}
+                                    highlighted={highlightedIds.has(session.id)}
+                                    onCopyLink={() => copyToClipboard(`${window.location.origin}/sign/${session.id}`)}
+                                    onDownload={() => handleStagedDownload(session)}
+                                    onDelete={() => handleDelete(session)}
+                                />
                             ))}
                         </AnimatePresence>
-                        {filteredSessions.length === 0 && (
-                            <div className="col-span-full py-12 text-center text-[#9C8C74] bg-[#F9F7F2] rounded-xl border border-dashed border-[#E6DCC3]">
-                                <p className="text-sm font-medium">No waivers found</p>
-                            </div>
-                        )}
+
+                        {filteredSessions.length === 0 && <EmptyState onCreate={() => setIsCreateModalOpen(true)} filter={currentFilter} search={searchTerm} />}
                     </div>
 
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-4 mt-6 pt-4 border-t border-[#E6DCC3]">
+                    {/* Pagination */}
+                    {filteredSessions.length > itemsPerPage && (
+                        <div className="flex items-center justify-center gap-4 pt-4">
                             <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="px-3 py-1 text-xs font-medium text-[#8B5E3C] disabled:opacity-50 hover:bg-[#F9F7F2] rounded transition"
+                                className="btn-secondary text-xs px-3 py-1.5"
                             >
                                 Previous
                             </button>
-                            <span className="text-xs font-bold text-[#2C1810]">
+                            <span className="text-xs font-semibold tabular-nums text-[var(--text)]">
                                 {currentPage} / {totalPages}
                             </span>
                             <button
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="px-3 py-1 text-xs font-medium text-[#8B5E3C] disabled:opacity-50 hover:bg-[#F9F7F2] rounded transition"
+                                className="btn-secondary text-xs px-3 py-1.5"
                             >
                                 Next
                             </button>
@@ -354,140 +326,392 @@ export default function AdminDashboard({ initialAgreement, sessions }: { initial
                     )}
                 </section>
 
-                {/* New Session Modal */}
-                <AnimatePresence>
-                    {isModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C1810]/60 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-[#FDFBF7] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E6DCC3]"
-                            >
-                                <div className="p-6">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-xl font-bold text-[#2C1810] font-serif">Create Waiver</h3>
-                                        <button onClick={() => setIsModalOpen(false)} className="text-[#9C8C74] hover:text-[#2C1810] transition">
-                                            <XCircle className="w-6 h-6" />
-                                        </button>
-                                    </div>
-                                    <form onSubmit={handleCreateLink} className="space-y-4">
-                                        <div>
-                                            <label className="text-xs font-bold text-[#8B6E4E] uppercase tracking-wider mb-1.5 block">Full Name *</label>
-                                            <input
-                                                autoFocus
-                                                type="text"
-                                                className="modern-input w-full"
-                                                placeholder="e.g. John Doe"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-[#8B6E4E] uppercase tracking-wider mb-1.5 block">Email Address *</label>
-                                            <input
-                                                type="email"
-                                                className="modern-input w-full"
-                                                placeholder="e.g. john@example.com"
-                                                value={formData.email}
-                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="pt-2 flex gap-3">
-                                            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 btn-secondary justify-center">
-                                                Cancel
-                                            </button>
-                                            <button type="submit" className="flex-1 btn-primary justify-center shadow-lg shadow-[#8B5E3C]/20">
-                                                Generate Link
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
+                {/* Template editor entry */}
+                <footer className="pt-8 mt-8 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button
+                        onClick={() => setIsTemplateModalOpen(true)}
+                        className="btn-ghost"
+                    >
+                        <FileText className="w-3.5 h-3.5" /> Edit Agreement Template
+                    </button>
+                    <p className="text-[10px] uppercase tracking-widest text-[var(--text-subtle)] font-semibold">
+                        Songbird Terrace · Release App · v1.0.1
+                    </p>
+                </footer>
+            </main>
 
-                    {/* Template Editor Modal */}
-                    {isTemplateModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C1810]/60 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-[#FDFBF7] rounded-2xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden border border-[#E6DCC3]"
-                            >
-                                <div className="p-4 border-b border-[#E6DCC3] flex justify-between items-center bg-[#F9F7F2]">
-                                    <h3 className="text-lg font-bold text-[#2C1810] font-serif flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-[#8B5E3C]" /> Edit Agreement Template
-                                    </h3>
-                                    <button onClick={() => setIsTemplateModalOpen(false)} className="text-[#9C8C74] hover:text-[#2C1810] transition">
-                                        <XCircle className="w-6 h-6" />
-                                    </button>
-                                </div>
-                                <div className="flex-1 p-0 relative">
-                                    <textarea
-                                        className="w-full h-full p-6 text-sm text-[#4A3B32] leading-relaxed resize-none focus:outline-none font-serif bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] bg-blend-multiply"
-                                        value={agreement}
-                                        onChange={(e) => setAgreement(e.target.value)}
-                                        placeholder="Enter agreement text..."
-                                    />
-                                </div>
-                                <div className="p-4 border-t border-[#E6DCC3] bg-[#F9F7F2] flex justify-end gap-3">
-                                    <button onClick={() => setIsTemplateModalOpen(false)} className="btn-secondary">
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            await handleSave();
-                                            setIsTemplateModalOpen(false);
-                                        }}
-                                        disabled={isSaving}
-                                        className="btn-primary min-w-[120px] justify-center"
-                                    >
-                                        {isSaving ? 'Saving...' : 'Save Changes'}
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+            {/* Create modal */}
+            <AnimatePresence>
+                {isCreateModalOpen && (
+                    <Modal onClose={() => setIsCreateModalOpen(false)} title="Create Waiver">
+                        <form onSubmit={handleCreateLink} className="space-y-4">
+                            <div>
+                                <label htmlFor="new-name" className="field-label">Full Name</label>
+                                <input
+                                    id="new-name"
+                                    autoFocus
+                                    type="text"
+                                    className="modern-input"
+                                    placeholder="e.g. Jane Doe"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="new-email" className="field-label">Email Address</label>
+                                <input
+                                    id="new-email"
+                                    type="email"
+                                    className="modern-input"
+                                    placeholder="e.g. jane@example.com"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <p className="text-xs text-[var(--text-muted)] leading-relaxed pt-1">
+                                A unique signing link will be generated and copied to your clipboard automatically.
+                            </p>
+                            <div className="pt-3 flex gap-3">
+                                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="btn-secondary flex-1">
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn-primary flex-1">
+                                    <LinkIcon className="w-4 h-4" aria-hidden="true" /> Generate Link
+                                </button>
+                            </div>
+                        </form>
+                    </Modal>
+                )}
 
-                {/* Notification Toast */}
-                <AnimatePresence>
-                    {toast && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 50 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 50 }}
-                            className={`fixed bottom-8 right-8 px-6 py-3 rounded-xl shadow-2xl border flex items-center gap-3 backdrop-blur-md z-50 ${toast.type === 'success'
-                                ? 'bg-[#FDFBF7]/90 border-[#8B6E4E] text-[#2C1810]'
-                                : 'bg-red-50/90 border-red-200 text-red-800'
+                {/* Template editor */}
+                {isTemplateModalOpen && (
+                    <Modal
+                        onClose={() => setIsTemplateModalOpen(false)}
+                        title="Agreement Template"
+                        size="lg"
+                    >
+                        <div className="flex flex-col h-[70vh]">
+                            <textarea
+                                className="modern-input flex-1 font-display resize-none text-[0.95rem] leading-relaxed"
+                                style={{ padding: '1.25rem' }}
+                                value={agreement}
+                                onChange={(e) => setAgreement(e.target.value)}
+                                placeholder="Enter agreement text…"
+                            />
+                            <div className="pt-4 flex justify-end gap-3">
+                                <button onClick={() => setIsTemplateModalOpen(false)} className="btn-secondary">
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        await handleSave();
+                                        setIsTemplateModalOpen(false);
+                                    }}
+                                    disabled={isSaving}
+                                    className="btn-primary min-w-[140px]"
+                                >
+                                    {isSaving ? 'Saving…' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </div>
+                    </Modal>
+                )}
+            </AnimatePresence>
+
+            {/* Toast */}
+            <AnimatePresence>
+                {toast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.25 }}
+                        role="status"
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:right-8 md:translate-x-0 z-50"
+                    >
+                        <div
+                            className={`flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-lg shadow-[var(--shadow-lg)] ${toast.type === 'success'
+                                ? 'bg-white/90 border-[var(--border-strong)] text-[var(--text)]'
+                                : 'bg-[var(--danger-soft)]/90 border-[var(--danger)]/40 text-[var(--danger)]'
                                 }`}
                         >
                             {toast.type === 'success' ? (
-                                <CheckCircle2 className="w-5 h-5 text-[#8B6E4E]" />
+                                <CheckCircle2 className="w-5 h-5 text-[var(--success)]" aria-hidden="true" />
                             ) : (
-                                <AlertCircle className="w-5 h-5" />
+                                <AlertCircle className="w-5 h-5" aria-hidden="true" />
                             )}
-                            <span className="font-bold text-sm tracking-wide">{toast.message}</span>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            <span className="text-sm font-semibold">{toast.message}</span>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
 
-                <footer className="mt-12 mb-6 text-center">
-                    <p className="text-[10px] uppercase tracking-widest text-[#9C8C74]/60 font-medium">
-                        Songbird Terrace Release App • v1.0.1
-                    </p>
-                    <button
-                        onClick={() => setIsTemplateModalOpen(true)}
-                        className="mt-4 text-[#8B6E4E] hover:text-[#2C1810] text-sm font-bold border-b border-[#8B6E4E]/40 hover:border-[#2C1810] flex items-center justify-center gap-1 mx-auto transition pb-0.5"
-                    >
-                        <FileText className="w-4 h-4" /> Waiver Document
-                    </button>
-                </footer>
+/* ========================================================================
+   Helpers
+   ======================================================================== */
+
+function StatCard({
+    label,
+    value,
+    icon,
+    tone = 'default',
+}: {
+    label: string;
+    value: string | number;
+    icon: React.ReactNode;
+    tone?: 'default' | 'gold' | 'success';
+}) {
+    const iconTone =
+        tone === 'gold'
+            ? 'text-[var(--accent)] bg-[var(--gold-soft)]'
+            : tone === 'success'
+                ? 'text-[var(--success)] bg-[var(--success-soft)]'
+                : 'text-[var(--text-muted)] bg-[var(--bg-muted)]';
+
+    return (
+        <div className="card p-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+                <p className="eyebrow">{label}</p>
+                <p className="display-lg mt-1 tabular-nums">{value}</p>
+            </div>
+            <div className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${iconTone}`} aria-hidden="true">
+                {icon}
             </div>
         </div>
+    );
+}
+
+function FilterTab({
+    label,
+    count,
+    active,
+    onClick,
+}: {
+    label: string;
+    count: number;
+    active: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            role="tab"
+            aria-selected={active}
+            onClick={onClick}
+            className={`relative px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 ${active
+                ? 'text-[var(--text-inverse)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+        >
+            {active && (
+                <motion.span
+                    layoutId="filter-pill"
+                    className="absolute inset-0 bg-[var(--text)] rounded-md shadow-[var(--shadow-sm)]"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+            )}
+            <span className="relative">{label}</span>
+            <span className={`relative tabular-nums text-[10px] px-1.5 py-0.5 rounded-full ${active ? 'bg-white/15' : 'bg-[var(--bg-muted)]'}`}>
+                {count}
+            </span>
+        </button>
+    );
+}
+
+function WaiverCard({
+    session,
+    index,
+    highlighted,
+    onCopyLink,
+    onDownload,
+    onDelete,
+}: {
+    session: SessionRow;
+    index: number;
+    highlighted: boolean;
+    onCopyLink: () => void;
+    onDownload: () => void;
+    onDelete: () => void;
+}) {
+    const name =
+        session.signedAgreement?.customerName ||
+        session.designatedName ||
+        session.description ||
+        'Unnamed';
+    const email = session.signedAgreement?.customerEmail || session.designatedEmail;
+    const dateStr = session.isSigned && session.signedAgreement
+        ? new Date(session.signedAgreement.signedAt).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric' })
+        : new Date(session.createdAt).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric' });
+
+    return (
+        <motion.article
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{
+                opacity: 1,
+                y: 0,
+                scale: highlighted ? 1.015 : 1,
+                boxShadow: highlighted ? '0 0 0 2px var(--gold), var(--shadow-lg)' : 'var(--shadow-card)',
+            }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.2) }}
+            className="card card-hover relative overflow-hidden flex flex-col"
+        >
+            {/* Left status stripe */}
+            <span
+                aria-hidden="true"
+                className="absolute left-0 top-0 bottom-0 w-1"
+                style={{
+                    background: session.isSigned ? 'var(--success)' : 'var(--gold)',
+                }}
+            />
+
+            <div className="p-4 pl-5 flex-1 flex flex-col">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                        <h3 className="font-display text-[0.95rem] font-semibold text-[var(--text)] truncate">
+                            {name}
+                        </h3>
+                        {email && (
+                            <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{email}</p>
+                        )}
+                    </div>
+                    <StatusPill signed={session.isSigned} />
+                </div>
+
+                <p className="text-[11px] text-[var(--text-subtle)] font-medium mb-3 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" aria-hidden="true" />
+                    {session.isSigned ? 'Signed' : 'Created'} {dateStr}
+                </p>
+
+                <div className="mt-auto pt-3 border-t border-[var(--border-subtle)] flex items-center gap-2">
+                    {session.isSigned ? (
+                        <button onClick={onDownload} className="btn-secondary flex-1 py-1.5 text-xs">
+                            <Download className="w-3.5 h-3.5" aria-hidden="true" /> Download PDF
+                        </button>
+                    ) : (
+                        <button onClick={onCopyLink} className="btn-secondary flex-1 py-1.5 text-xs">
+                            <Copy className="w-3.5 h-3.5" aria-hidden="true" /> Copy Link
+                        </button>
+                    )}
+                    <button
+                        onClick={onDelete}
+                        className="p-1.5 rounded-md text-[var(--text-subtle)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
+                        aria-label={`Delete waiver for ${name}`}
+                        title="Delete"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        </motion.article>
+    );
+}
+
+function StatusPill({ signed }: { signed: boolean }) {
+    return (
+        <span
+            className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0 ${signed
+                ? 'text-[var(--success)] bg-[var(--success-soft)] border-[var(--success)]/20'
+                : 'text-[var(--accent-strong)] bg-[var(--gold-soft)] border-[var(--border-strong)]'
+                }`}
+        >
+            {signed ? 'Signed' : 'Pending'}
+        </span>
+    );
+}
+
+function EmptyState({
+    onCreate,
+    filter,
+    search,
+}: {
+    onCreate: () => void;
+    filter: 'all' | 'pending' | 'signed';
+    search: string;
+}) {
+    const isFiltered = filter !== 'all' || !!search;
+
+    return (
+        <div className="col-span-full py-14 text-center border border-dashed border-[var(--border-strong)] rounded-2xl bg-[var(--bg-muted)]/30">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--bg-white)] border border-[var(--border)] flex items-center justify-center shadow-[var(--shadow-sm)]">
+                {isFiltered ? (
+                    <Search className="w-6 h-6 text-[var(--text-muted)]" aria-hidden="true" />
+                ) : (
+                    <FileText className="w-6 h-6 text-[var(--text-muted)]" aria-hidden="true" />
+                )}
+            </div>
+            <h3 className="display-md">{isFiltered ? 'No matches' : 'No waivers yet'}</h3>
+            <p className="text-sm text-[var(--text-muted)] max-w-xs mx-auto mt-1.5 leading-relaxed">
+                {isFiltered
+                    ? 'Try clearing filters or searching with a different name.'
+                    : 'Create your first waiver link to get started.'}
+            </p>
+            {!isFiltered && (
+                <button onClick={onCreate} className="btn-primary mt-5">
+                    <Plus className="w-4 h-4" aria-hidden="true" /> New Waiver
+                </button>
+            )}
+        </div>
+    );
+}
+
+function Modal({
+    onClose,
+    title,
+    children,
+    size = 'md',
+}: {
+    onClose: () => void;
+    title: string;
+    children: React.ReactNode;
+    size?: 'md' | 'lg';
+}) {
+    // Escape key close
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [onClose]);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--bg-inverse)]/55 backdrop-blur-sm"
+            onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+        >
+            <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 8 }}
+                transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                onClick={(e) => e.stopPropagation()}
+                className={`card w-full ${size === 'lg' ? 'max-w-3xl' : 'max-w-md'} overflow-hidden`}
+                style={{ boxShadow: 'var(--shadow-lg)' }}
+            >
+                <header className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[var(--border-subtle)]">
+                    <h3 id="modal-title" className="display-md">{title}</h3>
+                    <button
+                        onClick={onClose}
+                        className="btn-ghost -mr-2"
+                        aria-label="Close dialog"
+                    >
+                        <XCircle className="w-5 h-5" />
+                    </button>
+                </header>
+                <div className="p-6">{children}</div>
+            </motion.div>
+        </motion.div>
     );
 }
