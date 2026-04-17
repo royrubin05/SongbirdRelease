@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { saveAgreement, createSigningSession, deleteSigningSession } from '../actions';
+import { logoutAction } from '../login/actions';
 import {
     CheckCircle2, AlertCircle, XCircle, Copy, FileText, Plus, Download, Search,
-    LayoutList, Clock, Trash2, Sparkles, TrendingUp, Link as LinkIcon, MoreHorizontal,
+    LayoutList, Clock, Trash2, Sparkles, TrendingUp, Link as LinkIcon, LogOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -207,6 +208,16 @@ export default function AdminDashboard({
                             <span className="hidden sm:inline">New Waiver</span>
                             <span className="sm:hidden">New</span>
                         </button>
+                        <form action={logoutAction}>
+                            <button
+                                type="submit"
+                                className="btn-secondary p-2.5"
+                                aria-label="Sign out"
+                                title="Sign out"
+                            >
+                                <LogOut className="w-4 h-4" aria-hidden="true" />
+                            </button>
+                        </form>
                     </div>
                 </div>
             </header>
