@@ -42,3 +42,9 @@ next-env.d.ts
 
 /app/generated/prisma
 .env*.local
+
+# Downloaded customer waiver PDFs — contains PII, never commit
+/waivers/
+*.pdf
+!test_download.pdf
+!public/**/*.pdf

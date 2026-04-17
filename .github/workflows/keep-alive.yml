@@ -1,0 +1,30 @@
+name: Keep Supabase DB Alive
+
+# Pings the /api/health endpoint once a day so Supabase's free tier
+# doesn't mark the project inactive and pause it. The endpoint runs a
+# real Prisma query, which is what counts as "activity" on the DB side.
+#
+# Note: GitHub disables scheduled workflows after 60 days with no
+# commits to the default branch. Commit anything (even a README tweak)
+# every month or so to keep the schedule active.
+
+on:
+  schedule:
+    # Every day at 14:00 UTC (~10am ET / 7am PT). Pick any time; just
+    # don't use exactly :00 of the hour — GitHub's cron is busiest then
+    # and jobs can be delayed or skipped.
+    - cron: '17 14 * * *'
+  workflow_dispatch: # lets you trigger it manually from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          URL="https://songbird-waiver.platform63.com/api/health"
+          echo "Pinging $URL"
+          # -f fails on 4xx/5xx so the job turns red if the DB is actually down
+          # -sS shows errors but hides progress
+          # --max-time 30 caps the wait in case the compute is cold-starting
+          curl -fsS --max-time 30 "$URL"
