@@ -30,5 +30,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "scripts/**",
+    "reset_and_seed.ts",
+    "seed_sessions.ts",
+    "generate_sample.ts",
+    "fix_data.ts",
+    "get_session.ts"
+  ]
 }
