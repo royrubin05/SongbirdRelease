@@ -48,3 +48,8 @@ next-env.d.ts
 *.pdf
 !test_download.pdf
 !public/**/*.pdf
+
+# Database dumps contain customer PII and signatures — never commit them.
+*.sql.gz
+supabase_backup.sql
+*_backup.sql

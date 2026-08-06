@@ -8,7 +8,7 @@
 -- That stays in sync with prisma/schema.prisma automatically.
 --
 -- This file is a pure-SQL fallback. It is intentionally provider-agnostic:
--- works on any Postgres 14+ (Supabase, Neon, Cockroach, self-hosted).
+-- works on any Postgres 14+ (Supabase, Cockroach, self-hosted).
 
 -- =========================================================================
 -- TABLES

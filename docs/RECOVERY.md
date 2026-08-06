@@ -64,7 +64,7 @@ postgresql://postgres.<PROJECT_REF>:<URL_ENCODED_PASSWORD>@aws-<N>-<region>.pool
 
 ## 3. Recreate the database from scratch
 
-Use this when: Supabase project was deleted, or you're migrating to a new provider (Neon, CockroachDB, self-hosted).
+Use this when: Supabase project was deleted, or you're migrating to a new provider (CockroachDB, self-hosted, etc.).
 
 ### Prerequisites
 - Local clone of this repo

@@ -21,6 +21,8 @@ Next.js 16 app for Songbird Terrace liability waivers. Customer-facing flow at `
 
 **There is NO Firebase / Cloud Run / App Engine deployment.** Prior to 2026-04-20 there was a Firebase App Hosting deployment at the same custom domain; it was decommissioned during the Vercel cutover. Do not assume Firebase is involved.
 
+**Supabase is the only database. There is no Neon / Vercel Postgres.** Commit `d9c8073` ("Migrate database from Supabase to Vercel Neon") is a misleading message — the code changes shipped but production `DATABASE_URL` / `DIRECT_URL` were never flipped, so Supabase (project ref `nykodezwrkdokvftesyg`) remains the live DB. Do not assume Neon exists.
+
 ## Owners
 
 - Roy Rubin (`roy.rubin@gmail.com`) — primary
@@ -48,6 +50,7 @@ Supabase free tier pauses after 7 days of inactivity. Prevention:
 4. **PDFs are generated in memory and streamed straight to Drive.** No filesystem writes anywhere in the runtime code. Keep it that way — Vercel serverless is effectively ephemeral.
 5. **`waivers/` directory and any loose `*.pdf` files are gitignored** (they're customer PII). Never commit them.
 6. **`.env` is gitignored.** All production values live in Vercel env vars.
+7. **RLS is enabled on all three public tables** (`AgreementTemplate`, `SigningSession`, `SignedAgreement`) with no policies. The app is unaffected because Prisma connects as `postgres` (owner role bypasses RLS); this only blocks the Supabase PostgREST / anon API from exposing data. Don't disable RLS without adding policies first.
 
 ## Critical commands
 
